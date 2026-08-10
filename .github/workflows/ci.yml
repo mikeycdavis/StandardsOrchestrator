@@ -26,5 +26,10 @@ jobs:
       - name: Authority boundary
         run: npm run boundary
 
+      # The enforcement workflows this repository ships to others. A gate that can be skipped, or that
+      # can swallow a failure, is a false assurance for every adopting repository at once.
+      - name: Enforcement workflows
+        run: npm run workflows
+
       - name: Test
         run: npm test

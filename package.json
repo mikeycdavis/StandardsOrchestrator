@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
-    "boundary": "node scripts/boundary.mjs"
+    "boundary": "node scripts/boundary.mjs",
+    "workflows": "node scripts/workflows.mjs"
   },
   "engines": {
     "node": ">=18"

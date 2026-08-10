@@ -1,0 +1,40 @@
+name: Standards
+
+# The caller. Copy this to `.github/workflows/standards.yml` in the adopting repository and replace
+# the two placeholders. It is intentionally boring, and every dull thing about it is load-bearing.
+#
+# NO PATH FILTERS. A `paths:` filter means the job does not run on pull requests that touch nothing
+# it matches — and a required check that does not run sits Pending forever. Cost, if it needs
+# managing, is managed at the step level inside the engine, never by declining to report.
+#
+# NO JOB-LEVEL `if:`. Same reason. A conditional job is a conditional check.
+#
+# NO APPLICABILITY LOGIC. No test for whether this repository looks like it places bets, trains
+# models, or makes forecasts. That judgement belongs to the orchestrator, which has the manifest and
+# the detectors and reports the evidence for whichever way it goes. A heuristic here would be a second
+# opinion formed with less information, and it would fail silently in the direction of not running.
+#
+# PINNED TO A COMMIT. The `uses:` reference below must be a 40-character commit SHA, not a branch and
+# not a tag. The whole chain is pinned or none of it is:
+#
+#     this repository
+#       -> StandardsOrchestrator @ <commit>
+#            -> BettingStandards @ v1.0.0 -> a4e7e68
+#
+# Replace ORCHESTRATOR_OWNER with the account or organisation that hosts StandardsOrchestrator, and
+# PINNED_ORCHESTRATOR_COMMIT_SHA with the commit you reviewed.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  standards:
+    name: Standards
+    uses: ORCHESTRATOR_OWNER/StandardsOrchestrator/.github/workflows/validate.yml@PINNED_ORCHESTRATOR_COMMIT_SHA

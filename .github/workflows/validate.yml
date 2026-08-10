@@ -1,0 +1,95 @@
+name: standards-gate
+
+# The reusable enforcement workflow. An adopting repository calls this and registers the resulting
+# check as required on its protected branches.
+#
+# THE CLAIM THIS WORKFLOW MAKES:
+#     When invoked, this CI path runs the pinned orchestrator and faithfully reports its result.
+#
+# THE CLAIM IT DOES NOT MAKE:
+#     That the check is registered as required, or that an administrator cannot remove it.
+# That is governance, it lives one layer up in the portfolio audit, and conflating the two would turn
+# the existence of a workflow file into evidence of branch protection.
+#
+# THREE FALSE-ENFORCEMENT MODES THIS FILE IS SHAPED AGAINST:
+#   1. A SKIPPED JOB. There is no job-level `if:` and no `paths:` filter. A skipped required check
+#      does not report at all — it sits Pending, which is neither passing nor failing, and the
+#      predictable response is removing it from branch protection.
+#   2. A SWALLOWED FAILURE. There is no `continue-on-error`, no `|| true`, and no step that turns a
+#      non-zero result into a zero one. The final step re-derives the verdict from the report rather
+#      than trusting that an earlier step failed loudly enough.
+#   3. A FLOATING ENGINE. The caller pins this workflow to a commit SHA, and the engine checkout below
+#      uses `github.workflow_sha` — the commit of THIS file as invoked. The engine that runs is the
+#      engine that was pinned. A project cannot claim reproducible standards enforcement while its
+#      enforcement engine floats on a branch.
+#
+# Applicability is NOT decided here. Whether a standard applies to this repository is the
+# orchestrator's judgement, made from the project manifest and its detectors. CI's only job is to
+# invoke it. A path filter or an `if:` here would be a second, cruder copy of that judgement, made by
+# something with no access to the evidence.
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node version used to run the enforcement engine."
+        type: string
+        required: false
+        default: "20"
+    secrets:
+      engine-token:
+        description: "A token that can read the orchestrator repository. Needed only when it is private."
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    steps:
+      # Which engine, exactly. Derived rather than hardcoded so a fork enforces with its own fork.
+      # Both values must be present. If either is empty this step exits non-zero and the check goes
+      # red, because an engine whose identity cannot be established must not be run.
+      - name: Identify the pinned engine
+        id: engine
+        env:
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: 'test -n "$WORKFLOW_SHA" && test -n "$GITHUB_WORKFLOW_REF" && echo "repository=${GITHUB_WORKFLOW_REF%%/.github/*}" >> "$GITHUB_OUTPUT"'
+
+      # The project and the engine are checked out into separate directories on purpose. Materialising
+      # the engine inside the gated tree would put this repository's own detectors, fixtures and
+      # registry under the detectors, and a project would then be found to exhibit signals that came
+      # from the thing inspecting it.
+      - name: Check out the repository being gated
+        uses: actions/checkout@v4
+        with:
+          path: project
+
+      - name: Check out the pinned engine
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.engine.outputs.repository }}
+          ref: ${{ github.workflow_sha }}
+          token: ${{ secrets.engine-token || github.token }}
+          path: engine
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      # No install step. The engine has no npm dependencies, and the absence of an install is what
+      # enforces that.
+      - name: Run the standards gate
+        run: 'node engine/scripts/gate.mjs run --project=project --out=gate-record'
+
+      # The terminality guard. It runs whatever happened above — including the cases the step above
+      # cannot report on itself, because it never started, was cancelled, or died at the runner level.
+      # It reads back the recorded verdict, re-derives it from the report, and fails closed on a
+      # missing, incomplete or self-inconsistent record. An evaluation that did not happen reports as
+      # a failure here rather than leaving the required check pending forever.
+      - name: Report a terminal result
+        if: ${{ always() }}
+        run: 'node engine/scripts/gate.mjs verify --out=gate-record'
