@@ -26,8 +26,16 @@
 /** What the project's manifest says. `UNSPECIFIED` is a real state, not a default to be filled in. */
 export const DECLARATIONS = Object.freeze(["REQUIRED", "NOT_APPLICABLE", "UNSPECIFIED"]);
 
-/** What the detectors observed. `INDETERMINATE` means they could not look, not that they saw nothing. */
-export const DETECTIONS = Object.freeze(["DETECTED", "NOT_DETECTED", "INDETERMINATE"]);
+/**
+ * What the detectors observed.
+ *
+ * `INDETERMINATE` means the detectors could not look — an unreadable tree, or a stack none of them
+ * understands. `NO_DETECTOR` means there was nothing configured to look in the first place, which is a
+ * fact about this repository rather than about the project being evaluated. Collapsing the two would
+ * make a pack with no detector permanently un-declarable: every `NOT_APPLICABLE` would conflict with a
+ * detection that was never going to happen, and no portfolio containing such a pack could ever pass.
+ */
+export const DETECTIONS = Object.freeze(["DETECTED", "NOT_DETECTED", "INDETERMINATE", "NO_DETECTOR"]);
 
 /**
  * The derived disposition.
@@ -102,6 +110,30 @@ const TABLE = {
     applicability: "UNRESOLVED",
     rationale: "neither evidence source said anything; applicability was never established",
   },
+
+  // The NO_DETECTOR column. Here the declaration is the only evidence that exists, because this
+  // repository configured nothing to look. That is not the declaration overriding a detection — there
+  // is no detection to override — and the report says so, so a reader can see that the corroboration
+  // is missing rather than assume it was obtained.
+  "REQUIRED/NO_DETECTOR": {
+    disposition: "APPLICABLE",
+    applicability: "DECLARED_ONLY",
+    rationale: "declared required; no detector is configured for this authority, so nothing corroborates it",
+  },
+  "NOT_APPLICABLE/NO_DETECTOR": {
+    disposition: "NOT_APPLICABLE",
+    applicability: "NOT_APPLICABLE",
+    rationale:
+      "declared not applicable, on the declaration alone: no detector is configured for this authority, " +
+      "so there is no independent evidence either way. Detector coverage is this repository's own gap, " +
+      "and stating it is more honest than blocking on a corroboration that was never going to arrive",
+    detectionDisagreement: false,
+  },
+  "UNSPECIFIED/NO_DETECTOR": {
+    disposition: "UNRESOLVED",
+    applicability: "UNRESOLVED",
+    rationale: "nobody declared anything and nothing was configured to look; applicability is unknown",
+  },
 };
 
 export class ApplicabilityError extends Error {
@@ -157,16 +189,34 @@ export function readDeclarations(manifest, packs) {
       declarations.set(pack, { declaration: "UNSPECIFIED", version: undefined });
       continue;
     }
-    if (entry.required === true) {
-      declarations.set(pack, { declaration: "REQUIRED", version: entry.version });
-    } else if (entry.required === false) {
-      declarations.set(pack, { declaration: "NOT_APPLICABLE", version: entry.version });
-    } else {
+    const required = readRequired(entry.required, pack);
+    if (required === undefined) {
       // An entry that exists but does not say. Not a default to guess at.
       declarations.set(pack, { declaration: "UNSPECIFIED", version: entry.version });
+    } else {
+      declarations.set(pack, { declaration: required ? "REQUIRED" : "NOT_APPLICABLE", version: entry.version });
     }
   }
   return declarations;
+}
+
+/**
+ * Read one `required` value.
+ *
+ * Both the boolean and its string form are accepted, because the manifest reader is untyped and
+ * `required: true` in YAML arrives here as `"true"`. Anything else THROWS rather than falling through
+ * to `UNSPECIFIED`. That direction matters: a typo like `required: yes` silently becoming "nobody
+ * said" would turn a malformed declaration into the same escape hatch as omitting the pack entirely,
+ * and the person who wrote it would believe they had declared something.
+ */
+function readRequired(value, pack) {
+  if (value === undefined || value === null) return undefined;
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  throw new ApplicabilityError(
+    `${pack}: 'required' must be true or false, not ${JSON.stringify(value)}. A value that cannot be ` +
+      `read is not the same as saying nothing, and must not quietly become it.`,
+  );
 }
 
 /** One line per pack, phrased so a reader sees both sources rather than only the conclusion. */

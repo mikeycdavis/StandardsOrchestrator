@@ -211,7 +211,30 @@ test("ADVERSARIAL: a dormant dependent does not drag its prerequisite into the r
 test("a prerequisite absent from the run is unsatisfied, not assumed fine", () => {
   const satisfaction = evaluateSatisfaction(shipped, new Map([[BETTING, result("PASS")]]));
   assert.equal(satisfaction.get(BETTING).dependencyStatus, "unsatisfied");
-  assert.match(satisfaction.get(BETTING).unsatisfiedBy[0].because, /not part of this run/);
+  assert.match(satisfaction.get(BETTING).unsatisfiedBy[0].because, /part of this run at all/);
+});
+
+test("a prerequisite present at the wrong version says so rather than reading as absent", () => {
+  // Found in a live run: a project declaring the prerequisite not-applicable was told the pack "was
+  // not part of this run at all", when it was right there — declared and dismissed. The remedies
+  // differ: adopt the authority, or correct the pin.
+  const satisfaction = evaluateSatisfaction(
+    shipped,
+    new Map([[BETTING, result("PASS")]]),
+    { byPack: new Map([["prediction", { applicability: "NOT_APPLICABLE", version: undefined }]]) },
+  );
+  const [unsatisfied] = satisfaction.get(BETTING).unsatisfiedBy;
+  assert.match(unsatisfied.because, /in this run but not at the pinned version/);
+  assert.match(unsatisfied.because, /NOT_APPLICABLE/);
+});
+
+test("pack-level context never changes satisfaction, only the message", () => {
+  const withContext = evaluateSatisfaction(
+    shipped,
+    new Map([[PREDICTION, result("PASS")], [BETTING, result("PASS")]]),
+    { byPack: new Map([["prediction", { applicability: "NOT_APPLICABLE" }]]) },
+  );
+  assert.equal(withContext.get(BETTING).dependencyStatus, "satisfied");
 });
 
 test("ADVERSARIAL: no reverse inference — a passing dependent establishes nothing upstream", () => {

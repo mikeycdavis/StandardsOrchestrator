@@ -54,6 +54,11 @@ test("EXHAUSTIVE: the full declaration x detection table", () => {
     "UNSPECIFIED/DETECTED": ["CONFLICT", "CONFLICT"],
     "UNSPECIFIED/NOT_DETECTED": ["UNRESOLVED", "UNRESOLVED"],
     "UNSPECIFIED/INDETERMINATE": ["UNRESOLVED", "UNRESOLVED"],
+    // The NO_DETECTOR column: nothing was configured to look, so the declaration is the only evidence
+    // that exists. Not a declaration overriding a detection — there is no detection to override.
+    "REQUIRED/NO_DETECTOR": ["APPLICABLE", "DECLARED_ONLY"],
+    "NOT_APPLICABLE/NO_DETECTOR": ["NOT_APPLICABLE", "NOT_APPLICABLE"],
+    "UNSPECIFIED/NO_DETECTOR": ["UNRESOLVED", "UNRESOLVED"],
   };
 
   let checked = 0;
@@ -66,7 +71,38 @@ test("EXHAUSTIVE: the full declaration x detection table", () => {
       checked += 1;
     }
   }
-  assert.equal(checked, 9);
+  assert.equal(checked, 12);
+});
+
+test("NO_DETECTOR is not INDETERMINATE, and the difference decides a gate", () => {
+  // Found end to end. Two packs are known but have no detector module, so every NOT_APPLICABLE
+  // declaration conflicted with a detection that was never going to happen — no portfolio containing
+  // them could ever pass. One is a gap in this repository's coverage; the other is a failure to look
+  // at a project, and only the second is evidence about the project.
+  assert.equal(
+    deriveApplicability({ pack: "ml", declaration: "NOT_APPLICABLE", detection: "NO_DETECTOR" }).disposition,
+    "NOT_APPLICABLE",
+  );
+  assert.equal(
+    deriveApplicability({ pack: "ml", declaration: "NOT_APPLICABLE", detection: "INDETERMINATE" }).disposition,
+    "CONFLICT",
+  );
+  // The missing corroboration is stated rather than left to be assumed.
+  assert.match(
+    deriveApplicability({ pack: "ml", declaration: "NOT_APPLICABLE", detection: "NO_DETECTOR" }).rationale,
+    /no independent evidence either way/,
+  );
+});
+
+test("NO_DETECTOR still cannot waive a requirement or resolve silence", () => {
+  assert.equal(
+    deriveApplicability({ pack: "ml", declaration: "REQUIRED", detection: "NO_DETECTOR" }).disposition,
+    "APPLICABLE",
+  );
+  assert.equal(
+    deriveApplicability({ pack: "ml", declaration: "UNSPECIFIED", detection: "NO_DETECTOR" }).disposition,
+    "UNRESOLVED",
+  );
 });
 
 test("both evidence sources are preserved verbatim beside the derivation", () => {
@@ -146,6 +182,29 @@ test("an entry that exists but does not say is UNSPECIFIED", () => {
   const declarations = readDeclarations({ standards: { betting: { version: "1.0.0" } } }, ["betting"]);
   assert.equal(declarations.get("betting").declaration, "UNSPECIFIED");
   assert.equal(declarations.get("betting").version, "1.0.0");
+});
+
+test("a manifest read as untyped text still declares what it says", () => {
+  // Found end to end: the manifest reader is untyped, so `required: true` in YAML arrives as the
+  // string "true". Every declaration had silently become UNSPECIFIED — a whole manifest of
+  // requirements reduced to silence, with nothing to indicate it.
+  const declarations = readDeclarations(
+    { standards: { betting: { required: "true", version: "1.0.0" }, prediction: { required: "false" } } },
+    ["betting", "prediction"],
+  );
+  assert.equal(declarations.get("betting").declaration, "REQUIRED");
+  assert.equal(declarations.get("prediction").declaration, "NOT_APPLICABLE");
+});
+
+test("ADVERSARIAL: an unreadable 'required' value throws rather than becoming silence", () => {
+  // A typo must not turn a malformed declaration into the same escape hatch as omitting the pack.
+  for (const value of ["yes", "TRUE", 1, "", "required"]) {
+    assert.throws(
+      () => readDeclarations({ standards: { betting: { required: value } } }, ["betting"]),
+      ApplicabilityError,
+      JSON.stringify(value),
+    );
+  }
 });
 
 test("required: false is a decision someone made, and reads as one", () => {

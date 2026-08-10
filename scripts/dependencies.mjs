@@ -164,7 +164,7 @@ const RAN_AND_COUNTED = new Set(["CONFIRMED", "DECLARED_ONLY"]);
  * other state — not-applicable, unresolved, conflicting, indeterminate, failed, blocked, or simply
  * absent from the run — leaves it unsatisfied.
  */
-export function evaluateSatisfaction(dependencies, results) {
+export function evaluateSatisfaction(dependencies, results, context = {}) {
   const satisfaction = new Map();
 
   const dependentsFirst = [...results.keys()].sort();
@@ -196,9 +196,19 @@ export function evaluateSatisfaction(dependencies, results) {
       const prerequisiteSatisfaction = satisfaction.get(requirement.authority);
 
       if (prerequisite === undefined) {
+        // Distinguish "that pack was nowhere in this run" from "that pack was here, but not at the
+        // pinned version". They send someone to do different things — adopt the authority, or correct
+        // the pin — and the second is the case a project reaches by declaring the prerequisite
+        // not-applicable while depending on it.
+        const [prerequisitePack] = requirement.authority.split("@");
+        const elsewhere = context.byPack?.get(prerequisitePack);
         unsatisfiedBy.push({
           authority: requirement.authority,
-          because: "the prerequisite authority was not part of this run at all",
+          because:
+            elsewhere === undefined
+              ? "no result for that authority was part of this run at all"
+              : `that pack is in this run but not at the pinned version — its applicability is ` +
+                `${elsewhere.applicability}${elsewhere.version ? ` and it is pinned to ${elsewhere.version}` : ` and it is pinned to no version`}`,
         });
         continue;
       }
