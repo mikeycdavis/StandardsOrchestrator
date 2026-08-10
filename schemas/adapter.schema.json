@@ -11,6 +11,7 @@
     "repository",
     "ref",
     "expectedCommit",
+    "tagKind",
     "binary",
     "entryPoint",
     "verdictCommand",
@@ -45,6 +46,11 @@
       "description": "The DEREFERENCED commit the tag must resolve to (refs/tags/<tag>^{}), not the tag-object SHA. Resolution compares against this. It is drift detection and a supply-chain control at once: CI runs exactly the commit that was reviewed, and a moved or force-pushed tag becomes a hard failure rather than silent execution of different code.",
       "type": "string",
       "pattern": "^[0-9a-f]{40}$"
+    },
+    "tagKind": {
+      "description": "Whether the release tag is annotated (a tag object that must be dereferenced with ^{}) or lightweight (a direct pointer to the commit). Recorded because the two produce different remote listings, and because a tag re-created in the other kind is a change to the released object that should fail rather than be absorbed.",
+      "type": "string",
+      "enum": ["annotated", "lightweight"]
     },
     "binary": { "type": "string", "minLength": 1 },
     "entryPoint": {

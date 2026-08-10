@@ -4,6 +4,7 @@
   "repository": "https://github.com/mikeycdavis/PredictionStandards.git",
   "ref": "v1.1.0",
   "expectedCommit": "ebe232bb52cd4b97b5ff3d53c52d6fd344fa3159",
+  "tagKind": "annotated",
   "binary": "predictions",
   "entryPoint": "scripts/predictions.mjs",
   "verdictCommand": "check",

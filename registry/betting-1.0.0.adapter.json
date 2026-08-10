@@ -4,6 +4,7 @@
   "repository": "https://github.com/mikeycdavis/BettingStandards.git",
   "ref": "v1.0.0",
   "expectedCommit": "a4e7e680ca9213d6bf9f5042a3ae7fd7383b7545",
+  "tagKind": "annotated",
   "binary": "standards",
   "entryPoint": "scripts/standards.mjs",
   "verdictCommand": "validate",
