@@ -66,13 +66,29 @@ export const OUTCOME_CLASSES = Object.freeze([
   "CONFLICT",
 ]);
 
-/** Applicability states. `CONFLICT` is a gate failure; `NOT_APPLICABLE` is not an evaluation. */
+/**
+ * Applicability states.
+ *
+ * `CONFIRMED` and `DECLARED_ONLY` are the two ways a pack legitimately runs. `NOT_APPLICABLE` is not
+ * an evaluation at all and is excluded from the evaluated set. Everything else gates: `CONFLICT` where
+ * the two evidence sources disagree, `UNRESOLVED` where applicability was simply never established.
+ * Both fail, for different reasons and with different remedies — one needs adjudication, the other
+ * needs a declaration.
+ */
 export const APPLICABILITY_STATES = Object.freeze([
   "CONFIRMED",
   "DECLARED_ONLY",
   "NOT_APPLICABLE",
   "CONFLICT",
+  "UNRESOLVED",
 ]);
+
+/**
+ * The states under which a pack may contribute a pass. Written as the complement so that a state
+ * added to the vocabulary without teaching this file about it gates by default rather than passing by
+ * default — the same direction as the lattice.
+ */
+const NON_GATING_APPLICABILITY = new Set(["CONFIRMED", "DECLARED_ONLY", "NOT_APPLICABLE"]);
 
 export const DEPENDENCY_STATES = Object.freeze(["satisfied", "unsatisfied", "not-applicable"]);
 
@@ -155,13 +171,17 @@ function effectOf(result) {
     });
   }
 
-  if (result.applicability === "CONFLICT") {
+  if (result.applicability !== undefined && !NON_GATING_APPLICABILITY.has(result.applicability)) {
     effect = raise(effect, "fail");
     reasons.push({
       pack: result.pack,
       class: result.class,
-      applicability: "CONFLICT",
-      reason: result.applicabilityReason ?? "declaration and detection disagree; a human must adjudicate",
+      applicability: result.applicability,
+      reason:
+        result.applicabilityReason ??
+        (result.applicability === "CONFLICT"
+          ? "declaration and detection disagree; a human must adjudicate"
+          : "whether this authority applies was never established"),
     });
   }
 

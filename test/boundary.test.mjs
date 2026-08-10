@@ -95,6 +95,55 @@ test("a domain concept smuggled into an adapter's non-identity field IS caught",
   }
 });
 
+test("PLANTED: a detector that reaches a conclusion is caught", async () => {
+  // Detectors are the one place domain vocabulary is unavoidable, so they live outside the normative
+  // directories and are guarded by the opposite rule instead: a detector produces evidence, never a
+  // conclusion. Without this, "detectors" would be the obvious place to relocate domain judgement to.
+  const dir = await mkdtemp(path.join(os.tmpdir(), "so-boundary-"));
+  try {
+    await mkdir(path.join(dir, "detectors"), { recursive: true });
+    await writeFile(
+      path.join(dir, "detectors", "betting.mjs"),
+      [
+        "export const pack = 'betting';",
+        "export const signals = [];",
+        "export function decide(hits) { return hits.length > 0 ? 'FAIL' : 'PASS'; }",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const violations = await checkBoundary(dir);
+    assert.ok(violations.length > 0, "a detector that concludes must be caught");
+    assert.ok(violations.every((v) => v.kind === "detector-concludes"));
+    assert.ok(violations.some((v) => v.concept === "PASS"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a detector naming domain vocabulary is NOT a violation", async () => {
+  // The carve-out that makes detection possible at all. Describing what a signal looks like requires
+  // naming the subject; it carries no normative weight and decides nothing.
+  const dir = await mkdtemp(path.join(os.tmpdir(), "so-boundary-"));
+  try {
+    await mkdir(path.join(dir, "detectors"), { recursive: true });
+    await writeFile(
+      path.join(dir, "detectors", "betting.mjs"),
+      [
+        "export const pack = 'betting';",
+        "export const signals = [",
+        "  { id: 'stake-sizing-computation', basis: 'a kelly fraction computed against a bankroll' },",
+        "];",
+      ].join("\n"),
+      "utf8",
+    );
+
+    assert.deepEqual(await checkBoundary(dir), [], "a detector must be able to describe its subject");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("documentation may discuss domains freely", async () => {
   // design/ and docs/ are not scanned. The file explaining why betting rules do not belong here has
   // to be able to say the word "betting".

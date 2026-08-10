@@ -294,7 +294,7 @@ test("the declared vocabularies are exactly what the algebra accepts", () => {
   // Pins the enumerations so a class added to the list without teaching the algebra about it is caught
   // here rather than discovered in production.
   assert.deepEqual([...OUTCOME_CLASSES], ["PASS", "FAIL", "BLOCKED", "INDETERMINATE", "UNRESOLVED", "CONFLICT"]);
-  assert.deepEqual([...APPLICABILITY_STATES], ["CONFIRMED", "DECLARED_ONLY", "NOT_APPLICABLE", "CONFLICT"]);
+  assert.deepEqual([...APPLICABILITY_STATES], ["CONFIRMED", "DECLARED_ONLY", "NOT_APPLICABLE", "CONFLICT", "UNRESOLVED"]);
   assert.deepEqual([...DEPENDENCY_STATES], ["satisfied", "unsatisfied", "not-applicable"]);
 });
 

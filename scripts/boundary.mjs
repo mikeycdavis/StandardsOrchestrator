@@ -59,6 +59,17 @@ const DOMAIN_CONCEPTS = [
 /** Fields in an adapter where naming the pack is the whole point. */
 const IDENTITY_FIELDS = new Set(["pack", "repository", "ref", "binary", "entryPoint", "verdictCommand"]);
 
+/**
+ * Detectors are the one place domain vocabulary is unavoidable — describing what a signal looks like
+ * is their entire function — so they live outside the normative directories. They are checked for the
+ * opposite property instead: a detector must never name an outcome class. Detection produces evidence
+ * about applicability and nothing else, and a detector that could reach a conclusion would be deciding
+ * a domain matter under another name. This is the narrowest exception that lets detection exist at
+ * all, rather than a hole in the boundary.
+ */
+const DETECTOR_DIR = "detectors";
+const CONCLUSION_VOCABULARY = ["PASS", "FAIL", "BLOCKED", "INDETERMINATE", "UNRESOLVED", "CONFLICT", "COMPLIANT"];
+
 async function* walk(dir) {
   let entries;
   try {
@@ -100,6 +111,17 @@ export async function checkBoundary(root = ROOT) {
     }
   }
 
+  for await (const file of walk(path.join(root, DETECTOR_DIR))) {
+    const relative = path.relative(root, file).replace(/\\/g, "/");
+    const raw = await readFile(file, "utf8");
+    for (const term of CONCLUSION_VOCABULARY) {
+      // Word-boundary matched: a detector may say "confidence", it may not say "COMPLIANT".
+      if (new RegExp(`\\b${term}\\b`).test(raw)) {
+        violations.push({ file: relative, concept: term, kind: "detector-concludes" });
+      }
+    }
+  }
+
   return violations;
 }
 
@@ -108,7 +130,8 @@ function render(violations) {
     return [
       "Authority boundary: clean.",
       "",
-      "No domain concept appears in rules/, schemas/, or registry/ outside adapter identity fields.",
+      "No domain concept appears in rules/, schemas/, or registry/ outside adapter identity fields,",
+      "and no detector names an outcome class.",
       "",
       "This establishes that no domain vocabulary was found. It does NOT establish that the boundary",
       "holds — a domain rule phrased in generic language would pass this check. The boundary is",
@@ -122,7 +145,11 @@ function render(violations) {
   out.push("");
   for (const v of violations) {
     out.push(`  ${v.file}`);
-    out.push(`      contains the domain concept '${v.concept}'`);
+    if (v.kind === "detector-concludes") {
+      out.push(`      names the outcome class '${v.concept}'. Detectors produce evidence, never conclusions.`);
+    } else {
+      out.push(`      contains the domain concept '${v.concept}'`);
+    }
   }
   out.push("");
   out.push("A normative requirement about a domain belongs to that domain's pack, which is the");

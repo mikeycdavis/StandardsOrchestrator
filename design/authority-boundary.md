@@ -87,8 +87,38 @@ that the betting mechanics were sound *conditional on a probability that was not
 supported* — which is more informative than refusing to run Betting at all, and which is why
 dependents are still executed.
 
+## The one exception: detectors, and why it is not a hole
+
+Applicability detection is on the permitted subject list, but a detector cannot do its job without
+naming a domain — describing what an order-placement call looks like requires saying "order". So
+`detectors/` sits deliberately outside `rules/`, `schemas/`, and `registry/`, and is governed by the
+opposite rule instead.
+
+| | Normative directories | `detectors/` |
+| --- | --- | --- |
+| May name a domain concept | **No** | **Yes** — it is the whole function |
+| May name an outcome class | Yes | **No** |
+| Carries normative weight | Yes | **None** |
+
+What makes this safe is not the file location. It is that **detection produces evidence, never a
+conclusion**:
+
+- A signal found raises a question. It cannot make a pack applicable on its own — declared-not-
+  applicable plus detected is a `CONFLICT` for a person to adjudicate, not an override.
+- A signal not found answers nothing. `NOT_DETECTED` means "the configured detectors found no
+  affirmative signal". It can never waive a pack, because if it could, every gap in detector recall
+  would be a way out of a standards gate.
+- No detector output is ever compared to a threshold. Confidence stays qualitative, since `0.91`
+  versus `0.89` would only move human judgement behind a decimal.
+
+`scripts/boundary.mjs` enforces the second row of that table: a detector naming `PASS`, `FAIL`, or any
+other outcome class is a violation. A detector that can conclude has stopped being a detector and
+become a domain rule in a directory nobody checks for them.
+
 ## The test that enforces this
 
 `test/boundary.test.mjs` scans this repository for domain vocabulary in any rule, schema, or registry
-file and fails if it finds it. A planted fixture proves the check bites. This is the boundary made
-mechanical rather than merely asserted — the same discipline the domain packs apply to themselves.
+file and fails if it finds it, and scans `detectors/` for outcome-class vocabulary. Planted fixtures
+prove both checks bite, and two further fixtures prove the carve-outs work: an adapter may name its
+pack, and a detector may describe its subject. This is the boundary made mechanical rather than merely
+asserted — the same discipline the domain packs apply to themselves.
