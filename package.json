@@ -9,7 +9,8 @@
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
     "boundary": "node scripts/boundary.mjs",
-    "workflows": "node scripts/workflows.mjs"
+    "workflows": "node scripts/workflows.mjs",
+    "portfolio": "node scripts/portfolio.mjs"
   },
   "engines": {
     "node": ">=18"

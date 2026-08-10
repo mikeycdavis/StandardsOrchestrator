@@ -65,8 +65,30 @@ It does not claim that the check is registered as required, or that it cannot be
 those two claims would make the presence of a workflow file read as evidence of branch protection,
 which it is not — a caller can sit unregistered in a repository indefinitely. Answering the second
 question needs evidence from outside the repository, since a repository cannot be its own witness.
-That is the portfolio audit, and it is **not yet built** (M8). Until it is, adoption is verified by
-looking.
+
+That is what the portfolio audit does (`npm run portfolio`, and a scheduled workflow here). It reads
+each governed repository's caller workflow and GitHub's own protection and ruleset configuration, and
+reports drift. Its criterion is stated as narrowly as it can honestly be:
+
+> Within the governance surfaces this audit can inspect, required standards enforcement cannot
+> disappear, weaken, or become unevaluable without the portfolio audit ceasing to report green.
+
+Note what that does *not* say. It does not say enforcement cannot be removed. An administrator can
+delete the caller, unregister the check, configure a bypass, or remove the repository from the
+portfolio — and each of those makes the audit go red rather than being prevented. Governance
+configuration the audit cannot read (a plan limit, a permissions boundary) is reported unevaluable,
+never as protected.
+
+Three claims stack, and none implies the others:
+
+| Layer | Claim |
+| --- | --- |
+| M7 required CI check | when invoked, this path runs the pinned orchestrator and reports faithfully |
+| M8 portfolio audit | this repository is configured so that check is required |
+| an individual CI run | it executed and passed for this commit |
+
+Branch protection does not prove any standard ran for any commit. That is run evidence, and the audit
+does not claim it.
 
 This is the same governance boundary BettingStandards Standard 21 R5 states, one level up.
 
@@ -85,3 +107,4 @@ than implied away.
 - [design/authority-boundary.md](design/authority-boundary.md) — what may and may not live here
 - [design/fact-vs-policy.md](design/fact-vs-policy.md) — discovered fact versus orchestrator policy
 - [design/enforcement.md](design/enforcement.md) — the CI claim, and the claim next to it
+- [design/governance-surfaces.md](design/governance-surfaces.md) — what GitHub will actually tell you

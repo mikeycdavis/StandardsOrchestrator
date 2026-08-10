@@ -1,0 +1,29 @@
+# Which repositories are governed, and what enforcement each is claimed to have.
+#
+# This file records the ENFORCEMENT CONTRACT, not applicability. Whether a standard applies to a
+# repository is decided by that repository's own standards.yml and the detectors, and the evidence is
+# reported either way. Nothing here says a repository places orders or trains anything; it says the
+# repository is governed, and what its enforcement configuration must look like.
+#
+# Every claim below is checked against evidence. A name the platform does not actually require is a
+# stale claim, and a stale claim fails the audit even when the workflow file itself is perfect.
+#
+# Removing a repository from this file is itself a governance change. The audit reads the git history
+# of this file, so a name that leaves without a matching entry under `retired` is reported.
+
+repositories:
+  Moneyball:
+    repository: mikeycdavis/Moneyball
+    rationale: "Places real orders against a live exchange, separated from paper trading by a settings flag. Its own documentation states that an unwired gate is indistinguishable from no gate."
+    enforcement:
+      workflow: .github/workflows/standards.yml
+      reusableWorkflow: .github/workflows/validate.yml
+      checkName: Standards / gate
+      protectedBranches:
+        - develop
+      requiredChecks:
+        - Standards / gate
+
+# No repository has left governance yet. Entries here need `removedAt` and a rationale; a retirement
+# with no reason is a deletion with a label on it.
+retired:

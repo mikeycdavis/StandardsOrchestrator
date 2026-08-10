@@ -1,0 +1,46 @@
+name: portfolio-audit
+
+# Is every governed repository still configured so that the standards check is required?
+#
+# This runs from OUTSIDE the governed repositories, on a schedule, because a repository cannot be its
+# own witness: the same administrator who removes a required check also controls whatever that
+# repository would have said about it. Running here does not make the audit incorruptible — it makes
+# the corruption visible somewhere else.
+#
+# It also runs on every push to main, so that a change to portfolio.yml is audited by the commit that
+# makes it rather than by whichever nightly run happens next.
+#
+# The token must be able to read the governed repositories and their governance configuration. Without
+# it the audit exits 2 and says so, rather than reporting every platform claim as unevaluable and
+# looking like a portfolio with nothing wrong that could be seen.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    steps:
+      # Full history. The membership check reads every revision of portfolio.yml, and a shallow clone
+      # would make a repository that left governance years ago look as though it never existed.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Audit portfolio governance
+        env:
+          GITHUB_TOKEN: ${{ secrets.PORTFOLIO_AUDIT_TOKEN }}
+        run: 'node scripts/portfolio.mjs'
