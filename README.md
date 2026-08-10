@@ -1,5 +1,12 @@
 # StandardsOrchestrator
 
+> **⛔ FROZEN — not the portfolio authority. See [FROZEN.md](FROZEN.md).**
+>
+> StandardsEnforcer owns standards orchestration for this portfolio. This repository independently
+> explored the same problem and is retained as comparative design evidence only. Do not adopt it into
+> a governed project. Everything below describes `v1.0.0` as it was built, and is left unedited so the
+> comparison stays honest.
+
 Composes independently versioned standards authorities into one merge gate.
 
 It owns no domain requirements. BettingStandards is the authority on betting; PredictionStandards on
