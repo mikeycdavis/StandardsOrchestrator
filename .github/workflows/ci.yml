@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # No install step. This repository has no npm dependencies, and the absence of an install is
+      # what enforces that rather than a policy document — adding a dependency breaks the build.
+      #
+      # "Zero dependencies" here means no npm packages. The orchestrator does shell out to `git` and
+      # `node`, which is unavoidable for a tool whose job is running other repositories' CLIs.
+
+      # The authority boundary: this repository composes standards authorities and must never become
+      # one. Runs first because a domain rule landing here is a category error, not a test failure.
+      - name: Authority boundary
+        run: npm run boundary
+
+      - name: Test
+        run: npm test

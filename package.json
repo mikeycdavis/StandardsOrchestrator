@@ -1,0 +1,18 @@
+{
+  "name": "standards-orchestrator",
+  "version": "0.1.0",
+  "description": "Composes independently versioned standards authorities into one merge gate. Owns no domain requirements.",
+  "type": "module",
+  "bin": {
+    "orchestrate": "scripts/orchestrate.mjs"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "boundary": "node scripts/boundary.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
