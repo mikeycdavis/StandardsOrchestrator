@@ -1,0 +1,14 @@
+{
+  "$comment": "Kept deliberately small. This file records composition prerequisites between independent authorities and nothing else. A prerequisite earns a place here only when it cannot be enforced inside either pack, which is a much narrower test than 'it would be sensible for these to run in order'.",
+  "dependencies": {
+    "betting@1.0.0": {
+      "requires": [
+        {
+          "authority": "prediction@1.1.0",
+          "condition": "satisfied",
+          "rationale": "This release consumes a probability estimate as an opaque input and evaluates nothing upstream of it, which its own ADR 0001 fixes deliberately. It therefore has no mechanism to know whether that estimate was adequately supported, and will reach an internally valid conclusion from an inadequately supported one. The upstream authority, for its part, knows nothing about who consumes its output. The prerequisite is a property of composing the two and belongs to neither, which is why it is recorded here rather than by reopening a frozen release."
+        }
+      ]
+    }
+  }
+}

@@ -104,6 +104,12 @@ export async function checkBoundary(root = ROOT) {
       const haystack = maskIdentityFields(raw).toLowerCase();
 
       for (const concept of DOMAIN_CONCEPTS) {
+        // Substring matched, deliberately. `edge` also occurs inside "knowledge" and "acknowledged",
+        // so this will one day produce a false positive — but it has not yet, and narrowing a boundary
+        // check in anticipation of a collision is the exact move the check exists to prevent. When a
+        // normative file genuinely needs one of those words, that is the evidence for changing this.
+        // The composition registry was expected to force it and did not: naming the concept precisely
+        // (dependency, prerequisite, authority, satisfaction) removed the collision instead.
         if (haystack.includes(concept)) {
           violations.push({ file: relative, concept });
         }
@@ -115,7 +121,8 @@ export async function checkBoundary(root = ROOT) {
     const relative = path.relative(root, file).replace(/\\/g, "/");
     const raw = await readFile(file, "utf8");
     for (const term of CONCLUSION_VOCABULARY) {
-      // Word-boundary matched: a detector may say "confidence", it may not say "COMPLIANT".
+      // Case-sensitive and word-boundary matched: a detector may say "pass" in prose, it may not name
+      // the outcome class PASS.
       if (new RegExp(`\\b${term}\\b`).test(raw)) {
         violations.push({ file: relative, concept: term, kind: "detector-concludes" });
       }
