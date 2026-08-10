@@ -102,6 +102,23 @@ parser is a false green.
 is unavoidable for a tool whose job is running other repositories' CLIs, and is said plainly rather
 than implied away.
 
+## The v1.0.0 contract
+
+[test/baseline.test.mjs](test/baseline.test.mjs) is the release baseline, and it is executable. It
+pins the sixteen properties that make this orchestrator's output worth believing — among them that no
+normative domain standard lives here, that the six outcome classes stay distinguishable in the JSON,
+that nothing evaluated is never a pass, that a non-`PASS` cannot be offset, that adapters are exact-
+version and interpreter-backed, that resolution never falls back from an immutable tag, that detection
+cannot conclude and silence cannot waive, that an engine fault cannot become a project finding, that
+membership cannot vanish from the portfolio, and that unreadable governance is never evidence of
+absent governance.
+
+Each of those is asserted because a plausible-looking refactor could remove it without any other test
+noticing. Each was mutation-proven: the property was broken in the implementation and the baseline
+confirmed red. Changing an assertion here is allowed and sometimes right — in the same commit as the
+change that moved it, with a message saying why. Relaxing one so a change passes unnoticed is the one
+wrong response.
+
 ## Design notes
 
 - [design/authority-boundary.md](design/authority-boundary.md) — what may and may not live here
