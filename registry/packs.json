@@ -1,0 +1,21 @@
+{
+  "$comment": "Pack identity, separate from adapter support, so three states stay distinguishable: a known pack at a supported release (an adapter exists), a known pack at an unsupported release (UNRESOLVED — we have not established how to compose that release), and an unknown pack (a registry or manifest error). Collapsing the last two would let a typo in a project's standards.yml read as an unsupported version, and would let a genuinely unsupported release read as a nonexistent authority. Listing a pack here is identity only. It grants nothing, and it is deliberately NOT a disabled adapter placeholder: the absence of an adapter file is the evidence that no composition contract has been established for any of that pack's releases.",
+  "packs": [
+    {
+      "id": "betting",
+      "repository": "https://github.com/mikeycdavis/BettingStandards.git"
+    },
+    {
+      "id": "prediction",
+      "repository": "https://github.com/mikeycdavis/PredictionStandards.git"
+    },
+    {
+      "id": "ml",
+      "repository": "https://github.com/mikeycdavis/MachineLearningStandards.git"
+    },
+    {
+      "id": "engineering",
+      "repository": "https://github.com/mikeycdavis/EngineeringStandards.git"
+    }
+  ]
+}

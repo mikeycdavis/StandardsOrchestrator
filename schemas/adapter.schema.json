@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mikeycdavis/StandardsOrchestrator/schemas/adapter.schema.json",
+  "title": "Standards adapter",
+  "description": "How to invoke exactly one (pack, version) and how to interpret what comes back. Every field is a fact discovered by reading that release; none may be inferred from a sibling. An adapter that cannot be fully constructed cannot be loaded, because a partially specified adapter would be an authority the orchestrator does not actually know how to interpret.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pack",
+    "version",
+    "repository",
+    "ref",
+    "expectedCommit",
+    "binary",
+    "entryPoint",
+    "verdictCommand",
+    "invocation",
+    "output",
+    "exitCodes",
+    "verdictSource",
+    "packVocabulary",
+    "verdictMap",
+    "interpreter",
+    "capabilities",
+    "factSource"
+  ],
+  "properties": {
+    "pack": {
+      "description": "Pack identity. Must appear in registry/packs.json.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "description": "The exact release this adapter was derived from. Never a range: supporting one release implies nothing about the next, and optimistic compatibility fails silently.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "repository": { "type": "string", "minLength": 1 },
+    "ref": {
+      "description": "The tag naming the release.",
+      "type": "string",
+      "minLength": 1
+    },
+    "expectedCommit": {
+      "description": "The DEREFERENCED commit the tag must resolve to (refs/tags/<tag>^{}), not the tag-object SHA. Resolution compares against this. It is drift detection and a supply-chain control at once: CI runs exactly the commit that was reviewed, and a moved or force-pushed tag becomes a hard failure rather than silent execution of different code.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "binary": { "type": "string", "minLength": 1 },
+    "entryPoint": {
+      "description": "Path to the executable script within the pack, relative to its root. Invoked directly rather than through the pack's npm scripts, which may hardcode their own targets.",
+      "type": "string",
+      "minLength": 1
+    },
+    "verdictCommand": {
+      "description": "The subcommand that produces a verdict. Evidence-only subcommands are not verdicts and must never be used here.",
+      "type": "string",
+      "minLength": 1
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argvTemplate", "subcommandPosition", "requiresAbsolutePolicyPath", "requiresAbsoluteTarget"],
+      "properties": {
+        "argvTemplate": {
+          "description": "Argument vector with {{placeholders}}. Placeholders are substituted, never concatenated.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "subcommandPosition": {
+          "description": "Whether the pack requires its subcommand as argv[0] or accepts it anywhere. Packs differ; assuming makes a silent mis-invocation.",
+          "type": "string",
+          "enum": ["first", "anywhere"]
+        },
+        "requiresAbsolutePolicyPath": {
+          "description": "True where the pack's own policy discovery is unsafe and the orchestrator must pass and pre-verify an absolute path.",
+          "type": "boolean"
+        },
+        "requiresAbsoluteTarget": {
+          "description": "True where omitting the target makes the pack fall back to its own fixtures.",
+          "type": "boolean"
+        }
+      }
+    },
+    "output": {
+      "description": "The machine-readable output contract. A pack with no machine-readable output cannot be adapted; scraping human-readable text into a verdict is forbidden.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "flag", "stream", "envelopeSchemaVersion"],
+      "properties": {
+        "format": { "type": "string", "const": "json" },
+        "flag": { "type": "string", "minLength": 1 },
+        "stream": { "type": "string", "enum": ["stdout"] },
+        "envelopeSchemaVersion": {
+          "description": "The schemaVersion this release emits from its verdict command. Recorded because at least one pack emits different values from different subcommands.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "exitCodes": {
+      "description": "Every exit code this release is documented to produce. An undeclared code is an execution-contract failure, never a guess at the nearest declared one.",
+      "type": "object",
+      "propertyNames": { "type": "string", "pattern": "^[0-9]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["meaning", "note"],
+        "properties": {
+          "meaning": {
+            "description": "readVerdict: the envelope carries the conclusion. infrastructureFault: the pack could not evaluate, which is never the project's non-compliance. blocked: a prohibition fired.",
+            "type": "string",
+            "enum": ["readVerdict", "infrastructureFault", "blocked"]
+          },
+          "note": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "verdictSource": {
+      "description": "Where the pack's own conclusion is read from. topLevelStatus: a named field. moduleDerived: the release has no single conclusion field and the interpreter module carries the derivation explicitly.",
+      "type": "string",
+      "enum": ["topLevelStatus", "moduleDerived"]
+    },
+    "verdictField": {
+      "description": "Required when verdictSource is topLevelStatus.",
+      "type": "string",
+      "minLength": 1
+    },
+    "packVocabulary": {
+      "description": "The release's complete documented conclusion vocabulary. verdictMap must cover it exactly, so a vocabulary term added upstream cannot pass through unmapped.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "verdictMap": {
+      "description": "Pack vocabulary to orchestrator outcome class. UNRESOLVED and CONFLICT are absent by design: they are orchestrator states, not conclusions any pack can reach about itself.",
+      "type": "object",
+      "propertyNames": { "type": "string", "minLength": 1 },
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["PASS", "FAIL", "BLOCKED", "INDETERMINATE"]
+      }
+    },
+    "interpreter": {
+      "description": "Pack-specific code. Deliberately not a generic expression the orchestrator interprets: the recon proved 'meaningfully evaluated' has different semantics per pack, and a shared default would be exactly the cross-pack inference this architecture forbids.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "positiveEvidence"],
+      "properties": {
+        "module": {
+          "description": "Path relative to the registry directory. Must export readVerdict, positiveEvidence, describeEvidence, and readCoverage.",
+          "type": "string",
+          "minLength": 1
+        },
+        "positiveEvidence": {
+          "description": "Human-readable statement of what the module's gate requires. Auditable without reading the code; the code remains the definition.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "capabilities": {
+      "description": "Declared, never synthesized. An unsupported capability is reported as unsupported; the orchestrator does not emulate it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machineReadableVerdict", "coverage", "separateEvidenceCommand"],
+      "properties": {
+        "machineReadableVerdict": { "type": "boolean" },
+        "coverage": { "type": "string", "enum": ["runLevel", "perRecord", "unsupported"] },
+        "separateEvidenceCommand": { "type": ["string", "null"] }
+      }
+    },
+    "knownHazards": {
+      "description": "Behaviours of this release that would produce a wrong reading if unmitigated. Each names its mitigation so the reason for an awkward invocation is not lost.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hazard", "mitigation"],
+        "properties": {
+          "hazard": { "type": "string", "minLength": 1 },
+          "mitigation": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "factSource": {
+      "description": "How the facts above were established. Every field is [FACT] and must be re-derived for a new release rather than carried forward.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["derivedFrom", "derivedOn"],
+      "properties": {
+        "derivedFrom": { "type": "string", "minLength": 1 },
+        "derivedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    }
+  }
+}

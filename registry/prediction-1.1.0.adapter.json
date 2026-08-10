@@ -1,0 +1,78 @@
+{
+  "pack": "prediction",
+  "version": "1.1.0",
+  "repository": "https://github.com/mikeycdavis/PredictionStandards.git",
+  "ref": "v1.1.0",
+  "expectedCommit": "ebe232bb52cd4b97b5ff3d53c52d6fd344fa3159",
+  "binary": "predictions",
+  "entryPoint": "scripts/predictions.mjs",
+  "verdictCommand": "check",
+  "invocation": {
+    "argvTemplate": ["check", "{{target}}", "--json", "--policy={{policy}}"],
+    "subcommandPosition": "first",
+    "requiresAbsolutePolicyPath": true,
+    "requiresAbsoluteTarget": true
+  },
+  "output": {
+    "format": "json",
+    "flag": "--json",
+    "stream": "stdout",
+    "envelopeSchemaVersion": "1.0.0"
+  },
+  "exitCodes": {
+    "0": {
+      "meaning": "readVerdict",
+      "note": "A conclusion was reached and the envelope carries it."
+    },
+    "1": {
+      "meaning": "readVerdict",
+      "note": "A negative conclusion, OR an unhandled error escaping as Node's default exit 1. The two are told apart by whether the envelope parses: no envelope means nothing was concluded, which is an infrastructure fault rather than a negative conclusion."
+    },
+    "2": {
+      "meaning": "infrastructureFault",
+      "note": "No conclusion could be reached."
+    }
+  },
+  "verdictSource": "moduleDerived",
+  "packVocabulary": [
+    "SUPPORTED",
+    "SUPPORTED_WITH_EXCEPTIONS",
+    "INSUFFICIENTLY_SUPPORTED",
+    "BLOCKED_BY_INVARIANT",
+    "NOT_EVALUATED"
+  ],
+  "verdictMap": {
+    "SUPPORTED": "PASS",
+    "SUPPORTED_WITH_EXCEPTIONS": "PASS",
+    "INSUFFICIENTLY_SUPPORTED": "FAIL",
+    "BLOCKED_BY_INVARIANT": "BLOCKED",
+    "NOT_EVALUATED": "INDETERMINATE"
+  },
+  "interpreter": {
+    "module": "interpreters/prediction-1.1.0.mjs",
+    "positiveEvidence": "aggregate.supported + aggregate.supportedWithExceptions > 0 — at least one record actually reached a positive conclusion. This release reports its denominator per record rather than per run, so the run-level evidence question is answered by the aggregate counts. Every count zero means no record was evaluated at all."
+  },
+  "capabilities": {
+    "machineReadableVerdict": true,
+    "coverage": "perRecord",
+    "separateEvidenceCommand": "audit"
+  },
+  "knownHazards": [
+    {
+      "hazard": "Policy discovery fails OPEN. With no --policy the release walks up to twelve ancestor directories and, finding nothing, falls back to the standards pack's own policy — so a project that adopted nothing can be graded against someone else's rules and produce a real-looking conclusion.",
+      "mitigation": "--policy is always passed as an absolute path, and the orchestrator stats that file itself before invoking. The release's own discovery is never relied on."
+    },
+    {
+      "hazard": "--policy pointing at a nonexistent file exits 1, not 2, because the load is outside any try/catch. Mapping exit 1 to a negative conclusion would report a missing configuration file as failing work.",
+      "mitigation": "The policy path is verified before invocation, and exit 1 without a parseable envelope is classified as an infrastructure fault rather than a negative conclusion."
+    },
+    {
+      "hazard": "An omitted target defaults to the release's own example records, and record discovery takes every *.json recursively with no name filter.",
+      "mitigation": "An absolute target is always passed explicitly."
+    }
+  ],
+  "factSource": {
+    "derivedFrom": "PredictionStandards v1.1.0 (ebe232b): scripts/predictions.mjs, its policy resolution, and a recorded check --json run",
+    "derivedOn": "2026-08-10"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "pack": "betting",
+  "version": "1.0.0",
+  "repository": "https://github.com/mikeycdavis/BettingStandards.git",
+  "ref": "v1.0.0",
+  "expectedCommit": "a4e7e680ca9213d6bf9f5042a3ae7fd7383b7545",
+  "binary": "standards",
+  "entryPoint": "scripts/standards.mjs",
+  "verdictCommand": "validate",
+  "invocation": {
+    "argvTemplate": ["validate", "--json", "--dir={{target}}"],
+    "subcommandPosition": "first",
+    "requiresAbsolutePolicyPath": false,
+    "requiresAbsoluteTarget": true
+  },
+  "output": {
+    "format": "json",
+    "flag": "--json",
+    "stream": "stdout",
+    "envelopeSchemaVersion": "1.0"
+  },
+  "exitCodes": {
+    "0": {
+      "meaning": "readVerdict",
+      "note": "A conclusion was reached and the envelope carries it."
+    },
+    "1": {
+      "meaning": "readVerdict",
+      "note": "A negative conclusion was reached. The envelope still carries it and is still the source of truth; the exit code alone is not read as the verdict."
+    },
+    "2": {
+      "meaning": "infrastructureFault",
+      "note": "Input unreadable, or nothing was evaluated. This release deliberately exits 2 rather than 0 when its status is NOT_EVALUATED, so a directory it could not assess never reports success."
+    }
+  },
+  "verdictSource": "topLevelStatus",
+  "verdictField": "status",
+  "packVocabulary": [
+    "COMPLIANT",
+    "COMPLIANT_WITH_EXCEPTIONS",
+    "NON_COMPLIANT",
+    "NOT_EVALUATED",
+    "BLOCKED_BY_INVARIANT"
+  ],
+  "verdictMap": {
+    "COMPLIANT": "PASS",
+    "COMPLIANT_WITH_EXCEPTIONS": "PASS",
+    "NON_COMPLIANT": "FAIL",
+    "NOT_EVALUATED": "INDETERMINATE",
+    "BLOCKED_BY_INVARIANT": "BLOCKED"
+  },
+  "interpreter": {
+    "module": "interpreters/betting-1.0.0.mjs",
+    "positiveEvidence": "denominator.scored > 0 — at least one required-level rule was actually scored. This release reports denominator.scored at the run level with basis 'required-level rules that were evaluated', so a run in which every rule was skipped as not-applicable is visible as scored: 0 and cannot support a positive conclusion."
+  },
+  "capabilities": {
+    "machineReadableVerdict": true,
+    "coverage": "runLevel",
+    "separateEvidenceCommand": "audit"
+  },
+  "knownHazards": [
+    {
+      "hazard": "The envelope carries a numeric score alongside status. Reading score without first reading status invites a plausible-looking percentage from a run that concluded nothing.",
+      "mitigation": "score is never read. The conclusion comes from status, and whether it is supported comes from the interpreter's evidence gate."
+    },
+    {
+      "hazard": "Invoking through the pack's npm scripts would apply its own default target rather than the project under evaluation.",
+      "mitigation": "The entry point is invoked directly with an absolute --dir."
+    }
+  ],
+  "factSource": {
+    "derivedFrom": "BettingStandards v1.0.0 (a4e7e68): scripts/standards.mjs, scripts/compliance.mjs, and a recorded validate --json run",
+    "derivedOn": "2026-08-10"
+  }
+}
