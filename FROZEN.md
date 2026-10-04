@@ -3,7 +3,7 @@
 **This repository is not the portfolio's standards authority, and must not be adopted as one.**
 
 StandardsOrchestrator independently explored the same orchestration problem that
-[StandardsEnforcer](../StandardsEnforcer) is built to solve. Its implementation is not the portfolio
+[StandardsEnforcer](https://github.com/mikeycdavis/StandardsEnforcer) is built to solve. Its implementation is not the portfolio
 authority. Its design is being treated as independent comparative evidence; concepts may be adopted
 individually only where they preserve StandardsEnforcer's authority invariants.
 
