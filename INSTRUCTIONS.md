@@ -1,3 +1,11 @@
+> **⛔ FROZEN — do not adopt. StandardsOrchestrator is not the portfolio authority.**
+>
+> StandardsOrchestrator must not be adopted into a governed project, and the steps below must not be
+> followed to make it a required check. [StandardsEnforcer](https://github.com/mikeycdavis/StandardsEnforcer)
+> is the portfolio authority for standards orchestration. This repository is frozen as comparative
+> design evidence only; see [FROZEN.md](FROZEN.md). The guide below is retained unedited as a historical
+> record of `v1.0.0`.
+
 # Adopting the standards gate
 
 This turns compliance with pinned standards releases into a condition of merging. Four steps, in
